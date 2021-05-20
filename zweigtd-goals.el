@@ -36,6 +36,10 @@
 (require 'org-capture)
 (require 'org-agenda)
 
+(eval-when-compile
+  (defvar org-tag-faces)
+  (defvar org-tag-persistent-alist))
+
 (defgroup zweigtd-goals nil
   "Customization for 'zweigtd-goals' package."
   :group 'org
@@ -144,7 +148,7 @@ sure each goal heading has a priority subheading."
         goal)
     (let ((unique-keylist (-distinct keylist)))
       (unless (= (length keylist) (length unique-keylist))
-        (error "Don't use duplicate hotkeys for goals.")))
+        (error "Don't use duplicate hotkeys for goals")))
     (setq available-keys
           (-difference zweigtd-goals--key-preference-order-list keylist))
     (dolist (goal goals)
