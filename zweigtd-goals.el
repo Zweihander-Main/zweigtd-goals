@@ -30,6 +30,8 @@
 ;;
 ;;; Code:
 
+;; (require 's)
+;; (require 'dash)
 (require 'org)
 (require 'org-capture)
 (require 'org-agenda)
@@ -82,26 +84,25 @@ Otherwise inserts the initial file content."
     (goto-char (point-max))
     (insert "\n" zweigtd-goals-top-level-heading)))
 
-(defun zweigtd-goals--sync-and-check-goals ()
-  "Makes sure all goals listed are present under top level 'Goals' heading. Make
-sure each goal heading has a priority subheading."
-  (goto-char (point-min))
-  (search-forward zweigtd-goals-top-level-heading)
-  (maphash (lambda (goal)
-             (save-excursion
-                                        ; find subheading with tag mentioned
-               (unless (search-forward goal) ;; TODO make sure heading
-                                        ; if hit end of list, insert heading at the end of the list
-                                        ; add to hash table
-                                        ; add
-                 )
-               (unless
-                                        ; make sure there is at least one subheading
-                                        ; add one if there isn't
-                                        ; add first subheading as priority to hash table
-                                        ; add any scheduling information to hash table
-                   )
-               )) zweigtd-goals--hashtable))
+;; (defun zweigtd-goals--sync-and-check-goals ()
+;;   "Makes sure all goals listed are present under top level 'Goals' heading. Make
+;; sure each goal heading has a priority subheading."
+;;   (goto-char (point-min))
+;;   (search-forward zweigtd-goals-top-level-heading)
+;;   (maphash (lambda (goal)
+;;              (save-excursion
+;;                                         ; find subheading with tag mentioned
+;;                (unless (search-forward goal) ;; TODO make sure heading
+;;                                         ; if hit end of list, insert heading at the end of the list
+;;                                         ; add to hash table
+;;                                         ; add
+;;                  )
+;;                (unless
+;;                                         ; make sure there is at least one subheading
+;;                                         ; add one if there isn't
+;;                                         ; add first subheading as priority to hash table
+;;                                         ; add any scheduling information to hash table
+;;                    ))) zweigtd-goals--hashtable))
 
 ;; TODO function to get all keys
 ;; TODO functions to get various metadata
@@ -110,19 +111,51 @@ sure each goal heading has a priority subheading."
 ;; TODO generate agenda views in real time?
 ;; TODO check off priorities anywhere
 
+(defconst zweigtd-goals--key-preference-order-list '(?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?0 ?a ?b ?c ?d ?e ?f ?g ?h ?i ?j ?k ?l ?m ?n ?o ?p ?q ?r ?s ?t ?u ?v ?w ?x ?y ?z)
+  "Preference order for auto-selecting keys for goals.")
 
-(clrhash zwei/org-tag-goal-table)
-(puthash "1#PHYSICAL" '(numkey ?1 colorstring "#CC2200") zwei/org-tag-goal-table)
-(puthash "2#MENTAL" '(numkey ?2 colorstring "#008F40") zwei/org-tag-goal-table)
-(puthash "3#CODING" '(numkey ?3 colorstring "#42A5F5") zwei/org-tag-goal-table)
-(puthash "4#AUTOMATION" '(numkey ?4 colorstring "#00FF33") zwei/org-tag-goal-table)
-(puthash "5#BUSINESS" '(numkey ?5 colorstring "#F5C400") zwei/org-tag-goal-table)
-(puthash "6#WANKER" '(numkey ?6 colorstring "#6A3B9F") zwei/org-tag-goal-table)
+(defun zweigtd-goals--string-to-color (str)
+  "Outputs hex color string in format '#000000' based on hash of STR."
+  (let ((hash 0)
+        (colstring "#")
+        (i 0)
+        colsub)
+    (mapcar (lambda (v)
+              (setq hash (+ v (- (ash hash 5) hash))))
+            str)
+    (dotimes (i 3)
+      (setq colsub (logand (ash hash (* i -8)) 255))
+      (setq colstring (concat colstring
+                              (s-right 2 (concat "00" (format "%X" colsub))))))
+    colstring))
 
-(defun zweigtd-goals-init ()
-  ""
-  (clrhash zweigtd-goals--hashtable)
-  )
+(defun zweigtd-goals-init (goals)
+  "GOALS"
+  (catch 'exit
+    (clrhash zweigtd-goals--hashtable)
+    (let ((keylist '()) ; Get hotkeys selected by user
+          (available-keys (-copy zweigtd-goals--key-preference-order-list))
+          goal)
+      (dolist (goal goals)
+        (let ((goalkey (plist-get goal :key)))
+          (when goalkey
+            (push keylist goalkey))))
+      (let ((unique-keylist (-distinct keylist)))
+        (unless (eq keylist unique-keylist)
+          (throw 'exit "Don't use duplicate hotkeys for goals.")))
+      (setq available-keys
+            (-difference zweigtd-goals--key-preference-order-list keylist))
+      (dolist (goal goals)
+        (let* ((goalname (plist-get goal :name))
+               (goalkey (or (plist-get goal :key)
+                            (let ((key (car available-keys)))
+                              (setq available-keys (cdr available-keys))
+                              key)))
+               (goalcolor (or (plist-get goal :color)
+                              (zweigtd-goals--string-to-color goalname))))
+          (puthash goalname
+                   '(key goalkey color goalcolor)
+                   zweigtd-goals--hashtable))))))
 
 (provide 'zweigtd-goals)
 
