@@ -41,11 +41,11 @@
   :group 'org
   :prefix "zweigtd-goals-")
 
+(defconst zweigtd-goals--key-preference-order-list '(?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?0 ?a ?b ?c ?d ?e ?f ?g ?h ?i ?j ?k ?l ?m ?n ?o ?p ?q ?r ?s ?t ?u ?v ?w ?x ?y ?z)
+  "Preference order for auto-selecting keys for goals.")
+
 (defvar zweigtd-goals--hashtable (make-hash-table :test 'equal)
   "Hash table with GOALSTRING as key, plist '(numkey ?# colorstring STRING) as values.")
-
-(defvar zweigtd-goals-goals nil
-  "")
 
 (defvar zweigtd-goals-file "goals.org"
   "")
@@ -111,9 +111,6 @@ Otherwise inserts the initial file content."
 ;; TODO generate agenda views in real time?
 ;; TODO check off priorities anywhere
 
-(defconst zweigtd-goals--key-preference-order-list '(?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?0 ?a ?b ?c ?d ?e ?f ?g ?h ?i ?j ?k ?l ?m ?n ?o ?p ?q ?r ?s ?t ?u ?v ?w ?x ?y ?z)
-  "Preference order for auto-selecting keys for goals.")
-
 (defun zweigtd-goals--string-to-color (str)
   "Outputs hex color string in format '#000000' based on hash of STR."
   (let ((hash 0)
@@ -129,33 +126,38 @@ Otherwise inserts the initial file content."
                               (s-right 2 (concat "00" (format "%X" colsub))))))
     colstring))
 
+(defun zweigtd-goals--bootstrap-hashtable (goals)
+  ""
+  (clrhash zweigtd-goals--hashtable)
+  ;; Get hotkeys selected by user to exclude from autofill
+  (let ((keylist (mapcar (lambda (v) (plist-get v :key)) goals))
+        (available-keys (-copy zweigtd-goals--key-preference-order-list))
+        goal)
+    (let ((unique-keylist (-distinct keylist)))
+      (unless (= (length keylist) (length unique-keylist))
+        (error "Don't use duplicate hotkeys for goals.")))
+    (setq available-keys
+          (-difference zweigtd-goals--key-preference-order-list keylist))
+    (dolist (goal goals)
+      (let* ((goalname (plist-get goal :name))
+             (goalkey (or (plist-get goal :key)
+                          (let ((key (car available-keys)))
+                            (setq available-keys (cdr available-keys))
+                            key)))
+             (goalcolor (or (plist-get goal :color)
+                            (zweigtd-goals--string-to-color goalname))))
+        (puthash goalname
+                 `(key ,goalkey color ,goalcolor)
+                 zweigtd-goals--hashtable)))))
+
 (defun zweigtd-goals-init (goals)
-  "GOALS"
-  (catch 'exit
-    (clrhash zweigtd-goals--hashtable)
-    (let ((keylist '()) ; Get hotkeys selected by user
-          (available-keys (-copy zweigtd-goals--key-preference-order-list))
-          goal)
-      (dolist (goal goals)
-        (let ((goalkey (plist-get goal :key)))
-          (when goalkey
-            (push keylist goalkey))))
-      (let ((unique-keylist (-distinct keylist)))
-        (unless (eq keylist unique-keylist)
-          (throw 'exit "Don't use duplicate hotkeys for goals.")))
-      (setq available-keys
-            (-difference zweigtd-goals--key-preference-order-list keylist))
-      (dolist (goal goals)
-        (let* ((goalname (plist-get goal :name))
-               (goalkey (or (plist-get goal :key)
-                            (let ((key (car available-keys)))
-                              (setq available-keys (cdr available-keys))
-                              key)))
-               (goalcolor (or (plist-get goal :color)
-                              (zweigtd-goals--string-to-color goalname))))
-          (puthash goalname
-                   '(key goalkey color goalcolor)
-                   zweigtd-goals--hashtable))))))
+  "GOALS" ; TODO document inputs, what's optional, what's not
+  (zweigtd-goals--bootstrap-hashtable goals)
+  ) ; TODO setup goals file
+
+(defun zweigtd-goals-get-goals ()
+  "Returns goal names as list."
+  (hash-table-keys zweigtd-goals--hashtable))
 
 (provide 'zweigtd-goals)
 

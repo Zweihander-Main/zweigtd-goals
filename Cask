@@ -6,6 +6,8 @@
 (files "process-org-agenda-inbox-test.el")
 
 (depends-on "org")
+(depends-on "dash")
+(depends-on "s")
 
 (development
  (depends-on "f")
