@@ -41,8 +41,17 @@
   :group 'org
   :prefix "zweigtd-goals-")
 
-(defconst zweigtd-goals--key-preference-order-list '(?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?0 ?a ?b ?c ?d ?e ?f ?g ?h ?i ?j ?k ?l ?m ?n ?o ?p ?q ?r ?s ?t ?u ?v ?w ?x ?y ?z)
+(defconst zweigtd-goals--key-preference-order-list
+  '(?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?0
+       ?a ?b ?c ?d ?e ?f ?g ?h ?i ?j ?k ?l ?m
+       ?n ?o ?p ?q ?r ?s ?t ?u ?v ?w ?x ?y ?z)
   "Preference order for auto-selecting keys for goals.")
+
+(defconst zweigtd-goals--start-tag-group '(:startgroup "goal")
+  "")
+
+(defconst zweigtd-goals--end-tag-group '(:endgroup "goal")
+  "")
 
 (defvar zweigtd-goals--hashtable (make-hash-table :test 'equal)
   "Hash table with GOALSTRING as key, plist '(numkey ?# colorstring STRING) as values.")
@@ -84,25 +93,25 @@ Otherwise inserts the initial file content."
     (goto-char (point-max))
     (insert "\n" zweigtd-goals-top-level-heading)))
 
-;; (defun zweigtd-goals--sync-and-check-goals ()
-;;   "Makes sure all goals listed are present under top level 'Goals' heading. Make
-;; sure each goal heading has a priority subheading."
-;;   (goto-char (point-min))
-;;   (search-forward zweigtd-goals-top-level-heading)
-;;   (maphash (lambda (goal)
-;;              (save-excursion
-;;                                         ; find subheading with tag mentioned
-;;                (unless (search-forward goal) ;; TODO make sure heading
-;;                                         ; if hit end of list, insert heading at the end of the list
-;;                                         ; add to hash table
-;;                                         ; add
-;;                  )
-;;                (unless
-;;                                         ; make sure there is at least one subheading
-;;                                         ; add one if there isn't
-;;                                         ; add first subheading as priority to hash table
-;;                                         ; add any scheduling information to hash table
-;;                    ))) zweigtd-goals--hashtable))
+(defun zweigtd-goals--sync-and-check-goals ()
+  "Makes sure all goals listed are present under top level 'Goals' heading. Make
+sure each goal heading has a priority subheading."
+  (goto-char (point-min))
+  (search-forward zweigtd-goals-top-level-heading)
+  (maphash (lambda (goal)
+             (save-excursion
+                                        ; find subheading with tag mentioned
+               (unless (search-forward goal) ;; TODO make sure heading
+                                        ; if hit end of list, insert heading at the end of the list
+                                        ; add to hash table
+                                        ; add
+                 )
+               (unless t
+                                        ; make sure there is at least one subheading
+                                        ; add one if there isn't
+                                        ; add first subheading as priority to hash table
+                                        ; add any scheduling information to hash table
+                 ))) zweigtd-goals--hashtable))
 
 ;; TODO function to get all keys
 ;; TODO functions to get various metadata
@@ -150,9 +159,46 @@ Otherwise inserts the initial file content."
                  `(key ,goalkey color ,goalcolor)
                  zweigtd-goals--hashtable)))))
 
+
+(defun zweigtd-goals--bootstrap-tags ()
+  ""
+  (when (and (member zweigtd-goals--end-tag-group org-tag-persistent-alist)
+             (member zweigtd-goals--start-tag-group org-tag-persistent-alist))
+    (let ((start-index (-elem-index zweigtd-goals--start-tag-group
+                                    org-tag-persistent-alist))
+          (end-index (1+ (-elem-index zweigtd-goals--end-tag-group
+                                      org-tag-persistent-alist))))
+      (setq org-tag-persistent-alist (-concat (-take start-index
+                                                     org-tag-persistent-alist)
+                                              (-drop end-index
+                                                     org-tag-persistent-alist)))))
+  (let (alltags
+        goaltags)
+    (push zweigtd-goals--end-tag-group alltags)
+    (maphash
+     (lambda (k v)
+       (push (cons k (plist-get v 'key))
+             goaltags))
+     zweigtd-goals--hashtable)
+    (setq alltags (-concat (nreverse goaltags) alltags))
+    (push zweigtd-goals--start-tag-group alltags)
+    (setq org-tag-persistent-alist (-concat org-tag-persistent-alist alltags)))
+  )
+
+(defun zweigtd-goals--bootstrap-tag-faces ()
+  ""
+  (maphash
+   (lambda (k v)
+     (let ((face (cons k (list ':foreground (plist-get v 'color) ':weight 'bold))))
+       (unless (member face org-tag-faces)
+         (push face org-tag-faces))))
+   zweigtd-goals--hashtable))
+
 (defun zweigtd-goals-init (goals)
   "GOALS" ; TODO document inputs, what's optional, what's not
   (zweigtd-goals--bootstrap-hashtable goals)
+  (zweigtd-goals--bootstrap-tags)
+  (zweigtd-goals--bootstrap-tag-faces)
   ) ; TODO setup goals file
 
 (defun zweigtd-goals-get-goals ()
