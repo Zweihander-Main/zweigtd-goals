@@ -51,6 +51,8 @@
        ?n ?o ?p ?q ?r ?s ?t ?u ?v ?w ?x ?y ?z)
   "Preference order for auto-selecting keys for goals.")
 
+;; TODO: Change defvars to defcustoms
+
 (defconst zweigtd-goals--start-tag-group '(:startgroup "goal")
   "")
 
@@ -59,6 +61,9 @@
 
 (defvar zweigtd-goals--hashtable (make-hash-table :test 'equal)
   "Hash table with GOALSTRING as key, plist '(numkey ?# colorstring STRING) as values.")
+
+(defvar zweigtd-goals-remain-in-buffer nil
+  "")
 
 (defvar zweigtd-goals-file "goals.org"
   "")
@@ -78,7 +83,8 @@ Creates the file if it does not already exist.
        (zweigtd-goals--sync-and-check-goals)
        ,@body
        (save-buffer))
-     (switch-to-buffer zweigtd-goals-file)))
+     (when zweigtd-goals-remain-in-buffer
+       (switch-to-buffer zweigtd-goals-file))))
 
 (defun zweigtd-goals--init-goals-buffer ()
   "Prepares the goals buffer for use.
@@ -102,20 +108,36 @@ Otherwise inserts the initial file content."
 sure each goal heading has a priority subheading."
   (goto-char (point-min))
   (search-forward zweigtd-goals-top-level-heading)
-  (maphash (lambda (goal)
-             (save-excursion
-                                        ; find subheading with tag mentioned
-               (unless (search-forward goal) ;; TODO make sure heading
-                                        ; if hit end of list, insert heading at the end of the list
-                                        ; add to hash table
-                                        ; add
-                 )
-               (unless t
-                                        ; make sure there is at least one subheading
-                                        ; add one if there isn't
-                                        ; add first subheading as priority to hash table
-                                        ; add any scheduling information to hash table
-                 ))) zweigtd-goals--hashtable))
+  (maphash
+   (lambda (goal startprops)
+     (let ((props startprops))
+       ;; find subheading with tag mentioned
+       (save-excursion
+         ;; create the heading if it doesn't exist
+         (unless (search-forward goal nil t) ; point @ top heading if not found
+           ;; insert at end of list
+           (if (fboundp '+org/insert-item-below)
+               (progn (+org/insert-item-below 1)
+                      (org-demote-subtree))
+             (org-insert-subheading t))
+           (org-set-tags goal))
+         ;; Currently at goal headline, add info to hash table
+         (setq props (plist-put props :desc (org-get-heading t t t t)))
+         ;; (unless t
+         ;; make sure there is at least one subheading, add if not
+                ;; TODO: go to next heading, check if subheading, go back and insert if not
+         ;; )
+         ;; add first subheading as priority to hash table
+         (let ((schedule (org-get-scheduled-time (point)))
+               (deadline (org-get-deadline-time (point))))
+           ;; add any scheduling info of priority to hash table
+           (when schedule
+             (setq props (plist-put props :schedule schedule)))
+           ;; add any deadline info of priority to hash table
+           (when deadline
+             (setq props (plist-put props :deadline deadline))))
+         (puthash goal props zweigtd-goals--hashtable)
+         ))) zweigtd-goals--hashtable))
 
 ;; TODO function to get all keys
 ;; TODO functions to get various metadata
@@ -160,7 +182,7 @@ sure each goal heading has a priority subheading."
              (goalcolor (or (plist-get goal :color)
                             (zweigtd-goals--string-to-color goalname))))
         (puthash goalname
-                 `(key ,goalkey color ,goalcolor)
+                 `(:key ,goalkey :color ,goalcolor)
                  zweigtd-goals--hashtable)))))
 
 
@@ -200,10 +222,12 @@ sure each goal heading has a priority subheading."
 
 (defun zweigtd-goals-init (goals)
   "GOALS" ; TODO document inputs, what's optional, what's not
+                                        ; Make sure you document that it should be after tag declarations
   (zweigtd-goals--bootstrap-hashtable goals)
   (zweigtd-goals--bootstrap-tags)
   (zweigtd-goals--bootstrap-tag-faces)
-  ) ; TODO setup goals file
+  (let ((zweigtd-goals-remain-in-buffer nil))
+    (zweigtd-goals-with-goals-file)))
 
 (defun zweigtd-goals-get-goals ()
   "Returns goal names as list."
