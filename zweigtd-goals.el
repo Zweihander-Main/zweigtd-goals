@@ -203,7 +203,7 @@ sure each goal heading has a priority subheading."
     (push zweigtd-goals--end-tag-group alltags)
     (maphash
      (lambda (k v)
-       (push (cons k (plist-get v 'key))
+       (push (cons k (plist-get v :key))
              goaltags))
      zweigtd-goals--hashtable)
     (setq alltags (-concat (nreverse goaltags) alltags))
@@ -215,14 +215,14 @@ sure each goal heading has a priority subheading."
   ""
   (maphash
    (lambda (k v)
-     (let ((face (cons k (list ':foreground (plist-get v 'color) ':weight 'bold))))
+     (let ((face (cons k (list ':foreground (plist-get v :color) ':weight 'bold))))
        (unless (member face org-tag-faces)
          (push face org-tag-faces))))
    zweigtd-goals--hashtable))
 
 (defun zweigtd-goals-init (goals)
   "GOALS" ; TODO document inputs, what's optional, what's not
-                                        ; Make sure you document that it should be after tag declarations
+  ;; Make sure you document that it should be after tag declarations
   (zweigtd-goals--bootstrap-hashtable goals)
   (zweigtd-goals--bootstrap-tags)
   (zweigtd-goals--bootstrap-tag-faces)
