@@ -103,6 +103,15 @@ Otherwise inserts the initial file content."
     (goto-char (point-max))
     (insert "\n" zweigtd-goals-top-level-heading)))
 
+(defun zweigtd-goals--insert-subheading (&optional text)
+  "TEXT"
+  (if (fboundp '+org/insert-item-below)
+      (progn (+org/insert-item-below 1)
+             (org-demote-subtree))
+    (org-insert-subheading t))
+  (when text
+    (org-edit-headline text)))
+
 (defun zweigtd-goals--sync-and-check-goals ()
   "Makes sure all goals listed are present under top level 'Goals' heading. Make
 sure each goal heading has a priority subheading."
@@ -116,18 +125,18 @@ sure each goal heading has a priority subheading."
          ;; create the heading if it doesn't exist
          (unless (search-forward goal nil t) ; point @ top heading if not found
            ;; insert at end of list
-           (if (fboundp '+org/insert-item-below)
-               (progn (+org/insert-item-below 1)
-                      (org-demote-subtree))
-             (org-insert-subheading t))
+           (zweigtd-goals--insert-subheading)
            (org-set-tags goal))
          ;; Currently at goal headline, add info to hash table
          (setq props (plist-put props :desc (org-get-heading t t t t)))
-         ;; (unless t
          ;; make sure there is at least one subheading, add if not
-                ;; TODO: go to next heading, check if subheading, go back and insert if not
-         ;; )
+         (unless (org-goto-first-child)
+           (zweigtd-goals--insert-subheading (concat "Priority for " goal))
+           (org-todo "TODO"))
+         ;; go to first sibling that isn't done/killed
+         (while (and (org-entry-is-done-p) (org-goto-sibling))
          ;; add first subheading as priority to hash table
+         (setq props (plist-put props :priority (org-get-heading t t t t)))
          (let ((schedule (org-get-scheduled-time (point)))
                (deadline (org-get-deadline-time (point))))
            ;; add any scheduling info of priority to hash table
