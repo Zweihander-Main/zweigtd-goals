@@ -145,15 +145,8 @@ sure each goal heading has a priority subheading."
            ;; add any deadline info of priority to hash table
            (when deadline
              (setq props (plist-put props :deadline deadline))))
-         (puthash goal props zweigtd-goals--hashtable)
-         ))) zweigtd-goals--hashtable))
-
-;; TODO function to get all keys
-;; TODO functions to get various metadata
-;; TODO init function based on config
-;; TODO view goals in minibuffer quickly
-;; TODO generate agenda views in real time?
-;; TODO check off priorities anywhere
+         (puthash goal props zweigtd-goals--hashtable)))))
+   zweigtd-goals--hashtable))
 
 (defun zweigtd-goals--string-to-color (str)
   "Outputs hex color string in format '#000000' based on hash of STR."
@@ -229,6 +222,7 @@ sure each goal heading has a priority subheading."
          (push face org-tag-faces))))
    zweigtd-goals--hashtable))
 
+;;;###autoload
 (defun zweigtd-goals-init (goals)
   "GOALS" ; TODO document inputs, what's optional, what's not
   ;; Make sure you document that it should be after tag declarations
@@ -238,6 +232,12 @@ sure each goal heading has a priority subheading."
   (let ((zweigtd-goals-remain-in-buffer nil))
     (zweigtd-goals-with-goals-file)))
 
+
+;; TODO view goals in minibuffer quickly
+;; TODO generate agenda views in real time?
+;; TODO check off priorities anywhere
+
+;;;###autoload
 (defun zweigtd-goals-get-goals ()
   "Returns goal names as list."
   (hash-table-keys zweigtd-goals--hashtable))
