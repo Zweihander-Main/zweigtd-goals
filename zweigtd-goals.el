@@ -82,6 +82,7 @@ Creates the file if it does not already exist.
        (zweigtd-goals--check-file-top-structure)
        (zweigtd-goals--sync-and-check-goals)
        ,@body
+       (zweigtd-goals--sync-and-check-goals)
        (save-buffer))
      (when zweigtd-goals-remain-in-buffer
        (switch-to-buffer zweigtd-goals-file))))
@@ -232,15 +233,29 @@ sure each goal heading has a priority subheading."
   (let ((zweigtd-goals-remain-in-buffer nil))
     (zweigtd-goals-with-goals-file)))
 
-
-;; TODO view goals in minibuffer quickly
-;; TODO generate agenda views in real time?
-;; TODO check off priorities anywhere
+;; TODO side-window:
+;;      - view each goal and each priority + scheduling/deadline (highlight upcoming)
+;;              - change how each is viewed based on keypress -- sort by key, sort by deadline, sort by schedule
+;;      - currently misusing scheduling, should switch to deadline and update agenda
+;;              - deadline for time priority should be done
+;;              - scheduling = start working
+;;      - CMD then KEY to do something with each goal (using narrowed buffer)
+;;              - edit goal description
+;;              - edit priority text, todo, scheduling, date
+;;              - change priority by changing tree
+;;      - similar to treemacs, use display-buffer-in-side-window
 
 ;;;###autoload
 (defun zweigtd-goals-get-goals ()
   "Returns goal names as list."
   (hash-table-keys zweigtd-goals--hashtable))
+
+(defun zweigtd-goals-get-prop-from-goal (goal prop)
+  "Return PROP based on GOAL. Error if goal not found, nil if prop not found."
+  (let ((data (gethash goal zweigtd-goals--hashtable)))
+    (unless data
+      (error (concat goal " goal not found")))
+    (plist-get data prop)))
 
 (provide 'zweigtd-goals)
 
