@@ -129,15 +129,17 @@ sure each goal heading has a priority subheading."
            (zweigtd-goals--insert-subheading)
            (org-set-tags goal))
          ;; Currently at goal headline, add info to hash table
-         (setq props (plist-put props :desc (org-get-heading t t t t)))
+         (setq props (plist-put props :desc (substring-no-properties
+                                             (org-get-heading t t t t))))
          ;; make sure there is at least one subheading, add if not
          (unless (org-goto-first-child)
            (zweigtd-goals--insert-subheading (concat "Priority for " goal))
            (org-todo "TODO"))
          ;; go to first sibling that isn't done/killed
-         (while (and (org-entry-is-done-p) (org-goto-sibling))
+         (while (and (org-entry-is-done-p) (org-goto-sibling)))
          ;; add first subheading as priority to hash table
-         (setq props (plist-put props :priority (org-get-heading t t t t)))
+         (setq props (plist-put props :priority (substring-no-properties
+                                                 (org-get-heading t t t t))))
          (let ((schedule (org-get-scheduled-time (point)))
                (deadline (org-get-deadline-time (point))))
            ;; add any scheduling info of priority to hash table
@@ -146,7 +148,7 @@ sure each goal heading has a priority subheading."
            ;; add any deadline info of priority to hash table
            (when deadline
              (setq props (plist-put props :deadline deadline))))
-         (puthash goal props zweigtd-goals--hashtable)))))
+         (puthash goal props zweigtd-goals--hashtable))))
    zweigtd-goals--hashtable))
 
 (defun zweigtd-goals--string-to-color (str)
@@ -248,10 +250,14 @@ sure each goal heading has a priority subheading."
 ;;;###autoload
 (defun zweigtd-goals-get-goals ()
   "Returns goal names as list."
+  (let ((zweigtd-goals-remain-in-buffer nil))
+    (zweigtd-goals-with-goals-file)) ; TODO oversyncing
   (hash-table-keys zweigtd-goals--hashtable))
 
-(defun zweigtd-goals-get-prop-from-goal (goal prop)
-  "Return PROP based on GOAL. Error if goal not found, nil if prop not found."
+(defun zweigtd-goals-get-prop (goal prop)
+  "Return :PROP based on GOAL. Error if goal not found, nil if prop not found."
+  (let ((zweigtd-goals-remain-in-buffer nil))
+    (zweigtd-goals-with-goals-file)) ; TODO oversyncing
   (let ((data (gethash goal zweigtd-goals--hashtable)))
     (unless data
       (error (concat goal " goal not found")))
