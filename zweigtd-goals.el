@@ -30,8 +30,8 @@
 ;;
 ;;; Code:
 
-;; (require 's)
-;; (require 'dash)
+(require 's)
+(require 'dash)
 (require 'org)
 (require 'org-capture)
 (require 'org-agenda)
@@ -267,6 +267,7 @@ sure each goal heading has a priority subheading."
 
 ;; Local Variables:
 ;; coding: utf-8
+;; flycheck-disabled-checkers: 'emacs-lisp-elsa
 ;; End:
 
 ;;; zweigtd-goals.el ends here
