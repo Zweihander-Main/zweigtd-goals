@@ -3,9 +3,10 @@
 ;; Copyright (C) 2021, Zweihänder <zweidev@zweihander.me>
 ;;
 ;; Author: Zweihänder
-;; Keywords: org-mode
+;; Keywords: outlines
 ;; Homepage: https://github.com/Zweihander-Main/zweigtd-goals
 ;; Version: 0.0.1
+;; Package-Requires: ((emacs "24.4"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -72,9 +73,8 @@
   "")
 
 (defmacro zweigtd-goals-with-goals-file (&rest body)
-  "Execute the forms in BODY to update the `zweigtd-goals-file'
-Creates the file if it does not already exist.
-"
+  "Execute the forms in BODY to update the `zweigtd-goals-file'.
+Creates the file if it does not already exist."
   (declare (indent defun) (debug t))
   `(let ((zweigtd-goals-buffer (find-file-noselect zweigtd-goals-file)))
      (with-current-buffer zweigtd-goals-buffer
@@ -88,7 +88,7 @@ Creates the file if it does not already exist.
        (switch-to-buffer zweigtd-goals-file))))
 
 (defun zweigtd-goals--init-goals-buffer ()
-  "Prepares the goals buffer for use.
+  "Prepare the goals buffer for use.
 If the file already exists, goes to the beginning of the buffer.
 Otherwise inserts the initial file content."
   (if (file-exists-p zweigtd-goals-file)
@@ -98,7 +98,7 @@ Otherwise inserts the initial file content."
             "#+TODO: TODO | DONE KILL\n")))
 
 (defun zweigtd-goals--check-file-top-structure ()
-  "Checks file to make sure there is top layer 'Goals' heading. Adds it if not."
+  "Check file to make sure there is top layer 'Goals' heading. Add it if not."
   (goto-char (point-min))
   (unless (search-forward zweigtd-goals-top-level-heading nil t)
     (goto-char (point-max))
@@ -114,8 +114,8 @@ Otherwise inserts the initial file content."
     (org-edit-headline text)))
 
 (defun zweigtd-goals--sync-and-check-goals ()
-  "Makes sure all goals listed are present under top level 'Goals' heading. Make
-sure each goal heading has a priority subheading."
+  "Make sure all goals listed are present under top level 'Goals' heading.
+Make sure each goal heading has a priority subheading."
   (goto-char (point-min))
   (search-forward zweigtd-goals-top-level-heading)
   (maphash
@@ -155,24 +155,23 @@ sure each goal heading has a priority subheading."
   "Outputs hex color string in format '#000000' based on hash of STR."
   (let ((hash 0)
         (colstring "#")
-        (i 0)
         colsub)
-    (mapcar (lambda (v)
+    (mapc (lambda (v)
               (setq hash (+ v (- (ash hash 5) hash))))
             str)
     (dotimes (i 3)
+      (ignore i)
       (setq colsub (logand (ash hash (* i -8)) 255))
       (setq colstring (concat colstring
                               (s-right 2 (concat "00" (format "%X" colsub))))))
     colstring))
 
 (defun zweigtd-goals--bootstrap-hashtable (goals)
-  ""
+  "GOALS"
   (clrhash zweigtd-goals--hashtable)
   ;; Get hotkeys selected by user to exclude from autofill
   (let ((keylist (mapcar (lambda (v) (plist-get v :key)) goals))
-        (available-keys (-copy zweigtd-goals--key-preference-order-list))
-        goal)
+        (available-keys (-copy zweigtd-goals--key-preference-order-list)))
     (let ((unique-keylist (-distinct keylist)))
       (unless (= (length keylist) (length unique-keylist))
         (error "Don't use duplicate hotkeys for goals")))
@@ -213,8 +212,7 @@ sure each goal heading has a priority subheading."
      zweigtd-goals--hashtable)
     (setq alltags (-concat (nreverse goaltags) alltags))
     (push zweigtd-goals--start-tag-group alltags)
-    (setq org-tag-persistent-alist (-concat org-tag-persistent-alist alltags)))
-  )
+    (setq org-tag-persistent-alist (-concat org-tag-persistent-alist alltags))))
 
 (defun zweigtd-goals--bootstrap-tag-faces ()
   ""
@@ -249,7 +247,7 @@ sure each goal heading has a priority subheading."
 
 ;;;###autoload
 (defun zweigtd-goals-get-goals ()
-  "Returns goal names as list."
+  "Return goal names as list."
   (let ((zweigtd-goals-remain-in-buffer nil))
     (zweigtd-goals-with-goals-file)) ; TODO oversyncing
   (hash-table-keys zweigtd-goals--hashtable))
