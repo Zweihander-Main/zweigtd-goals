@@ -254,6 +254,7 @@ sure each goal heading has a priority subheading."
     (zweigtd-goals-with-goals-file)) ; TODO oversyncing
   (hash-table-keys zweigtd-goals--hashtable))
 
+;;;###autoload
 (defun zweigtd-goals-get-prop (goal prop)
   "Return :PROP based on GOAL. Error if goal not found, nil if prop not found."
   (let ((zweigtd-goals-remain-in-buffer nil))
