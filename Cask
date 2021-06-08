@@ -3,7 +3,7 @@
 
 (package-file "zweigtd-goals.el")
 
-(files "process-org-agenda-inbox-test.el")
+(files "zweigtd-goals.el")
 
 (depends-on "org")
 (depends-on "dash")
