@@ -6,7 +6,7 @@
 ;; Keywords: outlines
 ;; Homepage: https://github.com/Zweihander-Main/zweigtd-goals
 ;; Version: 0.0.1
-;; Package-Requires: ((emacs "24.4"))
+;; Package-Requires: ((emacs "24.4") (dash "2.18.0") (s "1.12.0"))
 
 ;; This file is not part of GNU Emacs.
 
@@ -48,29 +48,30 @@
 
 (defconst zweigtd-goals--key-preference-order-list
   '(?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?0
-       ?a ?b ?c ?d ?e ?f ?g ?h ?i ?j ?k ?l ?m
-       ?n ?o ?p ?q ?r ?s ?t ?u ?v ?w ?x ?y ?z)
+    ?a ?b ?c ?d ?e ?f ?g ?h ?i ?j ?k ?l ?m
+    ?n ?o ?p ?q ?r ?s ?t ?u ?v ?w ?x ?y ?z)
   "Preference order for auto-selecting keys for goals.")
 
 ;; TODO: Change defvars to defcustoms
 
 (defconst zweigtd-goals--start-tag-group '(:startgroup "goal")
-  "")
+  "Name of the start tag group for goals.")
 
 (defconst zweigtd-goals--end-tag-group '(:endgroup "goal")
-  "")
+  "Name of the end tag group for goals.")
 
 (defvar zweigtd-goals--hashtable (make-hash-table :test 'equal)
-  "Hash table with GOALSTRING as key, plist '(numkey ?# colorstring STRING) as values.")
+  "Hash table with GOALSTRING as key.
+plist '(numkey ?# colorstring STRING) as values.")
 
 (defvar zweigtd-goals-remain-in-buffer nil
-  "")
+  "If non-nil, do not switch back to the original buffer after updating goals.")
 
 (defvar zweigtd-goals-file "goals.org"
-  "")
+  "File to store goals in.")
 
 (defvar zweigtd-goals-top-level-heading "* Goals"
-  "")
+  "Top level heading for goals file.")
 
 (defmacro zweigtd-goals-with-goals-file (&rest body)
   "Execute the forms in BODY to update the `zweigtd-goals-file'.
@@ -105,7 +106,7 @@ Otherwise inserts the initial file content."
     (insert "\n" zweigtd-goals-top-level-heading)))
 
 (defun zweigtd-goals--insert-subheading (&optional text)
-  "TEXT"
+  "Insert TEXT below the current heading."
   (if (fboundp '+org/insert-item-below)
       (progn (+org/insert-item-below 1)
              (org-demote-subtree))
@@ -157,8 +158,8 @@ Make sure each goal heading has a priority subheading."
         (colstring "#")
         colsub)
     (mapc (lambda (v)
-              (setq hash (+ v (- (ash hash 5) hash))))
-            str)
+            (setq hash (+ v (- (ash hash 5) hash))))
+          str)
     (dotimes (i 3)
       (ignore i)
       (setq colsub (logand (ash hash (* i -8)) 255))
@@ -167,7 +168,7 @@ Make sure each goal heading has a priority subheading."
     colstring))
 
 (defun zweigtd-goals--bootstrap-hashtable (goals)
-  "GOALS"
+  "Bootstrap the hashtable with GOALS."
   (clrhash zweigtd-goals--hashtable)
   ;; Get hotkeys selected by user to exclude from autofill
   (let ((keylist (mapcar (lambda (v) (plist-get v :key)) goals))
@@ -191,7 +192,7 @@ Make sure each goal heading has a priority subheading."
 
 
 (defun zweigtd-goals--bootstrap-tags ()
-  ""
+  "Bootstrap the tags."
   (when (and (member zweigtd-goals--end-tag-group org-tag-persistent-alist)
              (member zweigtd-goals--start-tag-group org-tag-persistent-alist))
     (let ((start-index (-elem-index zweigtd-goals--start-tag-group
@@ -215,7 +216,7 @@ Make sure each goal heading has a priority subheading."
     (setq org-tag-persistent-alist (-concat org-tag-persistent-alist alltags))))
 
 (defun zweigtd-goals--bootstrap-tag-faces ()
-  ""
+  "Bootstrap the tag faces."
   (maphash
    (lambda (k v)
      (let ((face (cons k (list ':foreground (plist-get v :color) ':weight 'bold))))
@@ -225,7 +226,7 @@ Make sure each goal heading has a priority subheading."
 
 ;;;###autoload
 (defun zweigtd-goals-init (goals)
-  "GOALS" ; TODO document inputs, what's optional, what's not
+  "Init using GOALS." ; TODO document inputs, what's optional, what's not.
   ;; Make sure you document that it should be after tag declarations
   (zweigtd-goals--bootstrap-hashtable goals)
   (zweigtd-goals--bootstrap-tags)
